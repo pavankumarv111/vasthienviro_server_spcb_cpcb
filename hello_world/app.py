@@ -94,7 +94,6 @@ def to_sign_with_private_key(plain_text, key_name):
 
 def lambda_handler(event, context):
     global datetime_ist
-    time.clock = time.time
     IST = pytz.timezone('Asia/Kolkata')
 
     datetime_ist = datetime.now(IST) - timedelta(seconds=40)
@@ -184,6 +183,11 @@ def lambda_handler(event, context):
         except Exception as e:
             calibration = '0'
 
+        try:
+            param_add_status = data['param_add_status']
+        except Exception as e:
+            param_add_status = '0'
+
         IST = pytz.timezone('Asia/Kolkata')
         datetime_ist = datetime.now(IST)
         if country == 'zambia':
@@ -229,14 +233,26 @@ def lambda_handler(event, context):
             param_storage = {}
             cpcb_storage = {}
             for i in range(len(parameter_id)):
-                name_str = name_str + "," + str(parameter_id[i])
-                value_format_str = value_format_str + "," + "%s"
-                val1.append(reading[i])
-                param_storage[parameter_id[i]] = reading[i]
-                cpcb_storage[parameter_id[i]] = reading[i]
-                sql_param = "UPDATE stations SET last_updated = %s,last_val=%s WHERE industry_id = %s AND station_id= %s AND parameter_name = %s"
-                val_param = (datentime, reading[i], industry_id, station_id, parameter_id[i][10:])
-                mycursor.execute(sql_param, val_param)
+                if parameter_id[i] == "param_1":
+                    name_str = name_str + "," + str("parameter_93")
+                    value_format_str = value_format_str + "," + "%s"
+                    val1.append(str(float(reading[i])+float(reading[i+1])))
+                    param_storage["parameter_93"] = str(float(reading[i])+float(reading[i+1]))
+                    cpcb_storage["parameter_93"] = str(float(reading[i])+float(reading[i+1]))
+
+                    sql_param = "UPDATE stations SET last_updated = %s,last_val=%s WHERE industry_id = %s AND station_id= %s AND parameter_name = %s"
+                    val_param = (datentime, str(float(reading[i])+float(reading[i+1])), industry_id, station_id, "93")
+                    mycursor.execute(sql_param, val_param)
+                    i = i+1
+                else:
+                    name_str = name_str + "," + str(parameter_id[i])
+                    value_format_str = value_format_str + "," + "%s"
+                    val1.append(reading[i])
+                    param_storage[parameter_id[i]] = reading[i]
+                    cpcb_storage[parameter_id[i]] = reading[i]
+                    sql_param = "UPDATE stations SET last_updated = %s,last_val=%s WHERE industry_id = %s AND station_id= %s AND parameter_name = %s"
+                    val_param = (datentime, reading[i], industry_id, station_id, parameter_id[i][10:])
+                    mycursor.execute(sql_param, val_param)
                 try:
                     if exceedance[i]:
                         exceedance_sql = "INSERT INTO exceedence_reports (datentime, industry_id,station_id,parameter_id,reading) VALUES (%s, %s, %s, %s, %s)"
